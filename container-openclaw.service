@@ -1,0 +1,48 @@
+# container-openclaw.service
+# OpenClaw Jeeves bot - Mattermost gateway
+# Install to: ~/.config/systemd/user/container-openclaw.service
+#
+# Usage:
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now container-openclaw.service
+#   loginctl enable-linger $USER   # keep running after logout
+
+[Unit]
+Description=OpenClaw Jeeves Bot (Podman container)
+Documentation=man:podman-generate-systemd(1)
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=%t/containers
+
+[Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
+Restart=always
+RestartSec=10
+TimeoutStopSec=70
+ExecStart=/usr/bin/podman run \
+	--cidfile=%t/%n.ctr-id \
+	--cgroups=no-conmon \
+	--rm \
+	--sdnotify=conmon \
+	--replace \
+	-d \
+	--name openclaw \
+	--hostname JOHNAIC \
+	-e OPENCLAW_CONFIG_PATH=/config/openclaw.json \
+	-e OPENCLAW_GATEWAY_TOKEN=container-openclaw-secret-2026 \
+	-v /home/prasanna/openclaw-config:/config \
+	-v /home/prasanna/openclaw-workspace:/home/openclaw/workspace \
+	-v /home/prasanna/openclaw-state:/home/node/.openclaw \
+	localhost/openclaw-jeeves:latest
+ExecStop=/usr/bin/podman stop \
+	--ignore -t 10 \
+	--cidfile=%t/%n.ctr-id
+ExecStopPost=/usr/bin/podman rm \
+	-f \
+	--ignore -t 10 \
+	--cidfile=%t/%n.ctr-id
+Type=notify
+NotifyAccess=all
+
+[Install]
+WantedBy=default.target
