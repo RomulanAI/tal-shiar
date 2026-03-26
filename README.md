@@ -85,6 +85,18 @@ If you tested with `podman run` first, stop it before starting the systemd servi
 podman stop openclaw && podman rm openclaw
 ```
 
+### 6. Install the watchdog (recommended)
+
+The systemd service handles process crashes, but the Mattermost WebSocket can silently die while the process stays alive. The watchdog script detects this by checking the age of the last log entry and restarts the service if it's stale.
+
+```bash
+# Install the cron job (runs every 5 minutes)
+crontab -l > /tmp/crontab.bak 2>/dev/null
+(crontab -l 2>/dev/null; echo ""; echo "# OpenClaw watchdog — restart if Mattermost websocket silently dies"; echo "*/5 * * * * $HOME/openclaw-container/openclaw-watchdog.sh") | crontab -
+```
+
+The watchdog logs to `~/.local/share/openclaw-watchdog.log`. It only triggers a restart if there are no log entries for 30 minutes (configurable via `STALE_THRESHOLD_MINUTES` in the script).
+
 ## Operations
 
 ### View logs
@@ -162,7 +174,7 @@ podman exec openclaw curl -s -H "Authorization: Bearer YOUR_BOT_TOKEN" https://y
 systemctl --user restart container-openclaw.service
 ```
 
-The systemd service is configured with `Restart=always` and `RestartSec=10`, so if the process crashes it will auto-recover. However, a silently stuck WebSocket (where the process stays alive) requires a manual restart or an external watchdog.
+The systemd service is configured with `Restart=always` and `RestartSec=10`, so if the process crashes it will auto-recover. However, a silently stuck WebSocket (where the process stays alive) won't crash the process — the watchdog cron job handles this case (see Step 6 in Quick Start).
 
 ### Zombie processes accumulating
 
@@ -194,6 +206,7 @@ podman images | grep openclaw-jeeves
 | `Dockerfile` | Original/minimal Containerfile (not currently used) |
 | `container-openclaw.service` | systemd user service unit |
 | `openclaw.json.example` | Example config (no secrets) |
+| `openclaw-watchdog.sh` | Cron-based watchdog for stale websocket detection |
 | `.gitignore` | Excludes `openclaw/` dir and secret files |
 
 | Host Path | Container Mount | Purpose |
