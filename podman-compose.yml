@@ -20,6 +20,8 @@ services:
       - "9090:9090"
     volumes:
       - ~/openclaw-state/workspace/wiki:/opt/quartz/content:ro
+      - ./quartz/quartz.config.ts:/opt/quartz/quartz.config.ts:ro
+      - ./quartz/quartz.layout.ts:/opt/quartz/quartz.layout.ts:ro
     restart: always
     depends_on:
       - openclaw
