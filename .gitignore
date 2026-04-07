@@ -4,4 +4,33 @@ openclaw/
 # Config files with secrets (API keys, bot tokens)
 *.secret
 *.env
+.env*
 openclaw.json
+mcporter.json
+
+# Workspace and state data (bind-mounted from host, not part of repo)
+openclaw-workspace/
+openclaw-state/
+openclaw-config/
+
+# Runtime artifacts
+*.log
+*.sqlite
+*.sqlite3
+*.db
+node_modules/
+__pycache__/
+*.pyc
+.cache/
+.mempalace/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor
+*.swp
+*.swo
+*~
+.vscode/
+.idea/

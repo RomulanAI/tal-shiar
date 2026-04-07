@@ -12,6 +12,10 @@
 
 set -euo pipefail
 
+# Ensure user session bus is available (cron doesn't set these)
+export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
+
 CONTAINER="openclaw"
 SERVICE="container-openclaw.service"
 STALE_THRESHOLD_MINUTES=30
