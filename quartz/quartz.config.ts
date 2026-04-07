@@ -3,7 +3,7 @@ import * as Plugin from "./quartz/plugins"
 
 const config: QuartzConfig = {
   configuration: {
-    pageTitle: "pdawg's wiki",
+    pageTitle: "Romulan Wiki",
     pageTitleSuffix: "",
     enableSPA: true,
     enablePopovers: true,
