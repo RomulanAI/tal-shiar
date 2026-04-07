@@ -22,7 +22,7 @@ REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONFIG_DIR="$HOME/openclaw-config"
 WORKSPACE_DIR="$HOME/openclaw-workspace"
 STATE_DIR="$HOME/openclaw-state"
-SERVICE_NAME="container-openclaw.service"
+SERVICE_NAME="openclaw-compose.service"
 SERVICE_DIR="$HOME/.config/systemd/user"
 CONTAINER="openclaw"
 IMAGE="localhost/openclaw-jeeves:latest"
@@ -106,15 +106,17 @@ fi
 # 3. Build the container image
 # ──────────────────────────────────────────────────────
 
-log "Building container image..."
+log "Building container images..."
 podman build -f "$REPO_DIR/Containerfile.jeeves" -t openclaw-jeeves:latest "$REPO_DIR"
-log "Image built: $IMAGE"
+podman build -f "$REPO_DIR/Containerfile.quartz" -t openclaw-container_quartz:latest "$REPO_DIR"
+log "Images built: openclaw-jeeves + quartz"
 
 # ──────────────────────────────────────────────────────
 # 4. Install systemd service
 # ──────────────────────────────────────────────────────
 
 log "Installing systemd service..."
+SERVICE_NAME="openclaw-compose.service"
 cp "$REPO_DIR/$SERVICE_NAME" "$SERVICE_DIR/$SERVICE_NAME"
 systemctl --user daemon-reload
 log "Service installed: $SERVICE_DIR/$SERVICE_NAME"
@@ -202,6 +204,7 @@ log ""
 log "  Bot status:     systemctl --user status $SERVICE_NAME"
 log "  Bot logs:       podman logs --tail 50 $CONTAINER"
 log "  Control UI:     http://$(hostname -I | awk '{print $1}'):18789/"
+log "  Wiki viewer:    http://$(hostname -I | awk '{print $1}'):9090/"
 log "  Config:         $CONFIG_DIR/openclaw.json"
 log "  Wiki vault:     $STATE_DIR/workspace/wiki/"
 log "  Obsidian:       Open above path as vault in Obsidian desktop"

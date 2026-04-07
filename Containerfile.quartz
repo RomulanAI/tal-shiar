@@ -1,0 +1,17 @@
+FROM node:24-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Quartz
+RUN git clone --depth 1 https://github.com/jackyzha0/quartz.git /opt/quartz \
+    && cd /opt/quartz && npm ci
+
+WORKDIR /opt/quartz
+
+# Content directory will be bind-mounted at runtime
+RUN rm -rf content && mkdir content
+
+EXPOSE 9090
+
+CMD ["npx", "quartz", "build", "--serve", "--port", "9090"]

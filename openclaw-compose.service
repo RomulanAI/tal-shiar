@@ -1,0 +1,29 @@
+# openclaw-compose.service
+# Manages both OpenClaw bot and Quartz wiki viewer via podman-compose.
+#
+# Installed by: install.sh (or manually copy to ~/.config/systemd/user/)
+# After changes: systemctl --user daemon-reload && systemctl --user restart openclaw-compose.service
+#
+# Usage:
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now openclaw-compose.service
+#   loginctl enable-linger $USER
+
+[Unit]
+Description=OpenClaw Bot + Quartz Wiki (podman-compose)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=10
+TimeoutStopSec=70
+WorkingDirectory=%h/openclaw-container
+ExecStartPre=-/bin/bash -c 'PATH=%h/.local/bin:%h/miniconda3/bin:$PATH podman-compose down --remove-orphans'
+ExecStart=/bin/bash -c 'PATH=%h/.local/bin:%h/miniconda3/bin:$PATH exec podman-compose up'
+ExecStop=/bin/bash -c 'PATH=%h/.local/bin:%h/miniconda3/bin:$PATH podman-compose down'
+Environment=HOSTNAME=%H
+
+[Install]
+WantedBy=default.target

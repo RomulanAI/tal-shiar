@@ -1,0 +1,25 @@
+services:
+  openclaw:
+    image: localhost/openclaw-jeeves:latest
+    container_name: openclaw
+    hostname: "${HOSTNAME}"
+    environment:
+      - OPENCLAW_CONFIG_PATH=/config/openclaw.json
+    volumes:
+      - ~/openclaw-config:/config
+      - ~/openclaw-workspace:/home/openclaw/workspace
+      - ~/openclaw-state:/home/node/.openclaw
+    restart: always
+
+  quartz:
+    build:
+      context: .
+      dockerfile: Containerfile.quartz
+    container_name: quartz-wiki
+    ports:
+      - "9090:9090"
+    volumes:
+      - ~/openclaw-state/workspace/wiki:/opt/quartz/content:ro
+    restart: always
+    depends_on:
+      - openclaw

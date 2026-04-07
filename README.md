@@ -5,6 +5,10 @@ A containerised [OpenClaw](https://github.com/openclaw/openclaw) deployment that
 ## Architecture
 
 ```
+podman-compose up -d
+├── openclaw container        (bot + QMD search + MemPalace)
+└── quartz-wiki container     (wiki viewer on :9090)
+
 Host
 ├── ~/openclaw-config/        # bind → /config         (openclaw.json, mcporter.json)
 ├── ~/openclaw-workspace/     # bind → /home/openclaw/workspace  (skills, skeleton files)
@@ -29,6 +33,7 @@ All persistent state lives on the host via bind mounts — the container is disp
 ## Prerequisites
 
 - Podman (tested with 5.2+)
+- podman-compose (`pip install podman-compose`)
 - systemd with user session support
 - A Mattermost server with a bot account and token
 - A Gemini API key (or other LLM provider key)
@@ -89,15 +94,15 @@ podman logs -f openclaw
 
 ```bash
 mkdir -p ~/.config/systemd/user
-cp container-openclaw.service ~/.config/systemd/user/
+cp openclaw-compose.service ~/.config/systemd/user/
 systemctl --user daemon-reload
-systemctl --user enable --now container-openclaw.service
+systemctl --user enable --now openclaw-compose.service
 
 # Keep the service running after logout
 loginctl enable-linger $USER
 ```
 
-The service file uses systemd specifiers (`%h` for home dir, `%H` for hostname) — no editing needed.
+This starts both the OpenClaw bot and Quartz wiki viewer via podman-compose.
 
 #### 5. Bootstrap the wiki knowledgebase
 
@@ -120,6 +125,18 @@ REPO="$(pwd)"
 ```
 
 ## Wiki Knowledgebase
+
+### Wiki Viewer (Quartz)
+
+The wiki is served as a website via [Quartz](https://quartz.jzhao.xyz) in a separate container:
+
+```
+http://<host-ip>:9090/
+```
+
+Features: `[[wikilinks]]`, graph view, backlinks, full-text search, hot-reload on file changes. The Quartz container mounts the wiki directory read-only and auto-rebuilds when the bot creates or updates pages.
+
+### Wiki Structure
 
 The bot maintains a persistent wiki at `~/openclaw-state/workspace/wiki/` following [Karpathy's LLM Wiki pattern](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f):
 
@@ -165,7 +182,7 @@ cat ~/.local/share/mempalace-cron.log                   # mempalace maintenance 
 ### Restart
 
 ```bash
-systemctl --user restart container-openclaw.service
+systemctl --user restart openclaw-compose.service
 ```
 
 ### Update to latest OpenClaw
@@ -173,7 +190,7 @@ systemctl --user restart container-openclaw.service
 ```bash
 podman pull ghcr.io/openclaw/openclaw:latest
 podman build -f Containerfile.jeeves -t openclaw-jeeves:latest .
-systemctl --user restart container-openclaw.service
+systemctl --user restart openclaw-compose.service
 ```
 
 ### Check wiki & memory status
@@ -196,7 +213,7 @@ The gateway binds to the LAN interface at `http://<host-ip>:18789/`. Authenticat
 Usually a stale WebSocket. The watchdog cron handles this automatically, but you can force a restart:
 
 ```bash
-systemctl --user restart container-openclaw.service
+systemctl --user restart openclaw-compose.service
 ```
 
 Check logs for `[mattermost] connected as @<bot-name>` to confirm reconnection.
@@ -225,7 +242,10 @@ Run the wiki bootstrap:
 | File | Purpose |
 |------|---------|
 | `Containerfile.jeeves` | Container image — extends official OpenClaw with QMD, MemPalace, dev tools |
-| `container-openclaw.service` | systemd user service (uses `%h`/`%H` specifiers, no hardcoded paths) |
+| `openclaw-compose.service` | systemd service — manages both containers via podman-compose |
+| `container-openclaw.service` | Legacy systemd service for OpenClaw only (without Quartz) |
+| `podman-compose.yml` | Compose file — orchestrates openclaw + quartz-wiki containers |
+| `Containerfile.quartz` | Quartz wiki viewer container image |
 | `install.sh` | Automated setup — builds image, installs service, cron, bootstraps wiki |
 | `setup-wiki.sh` | Wiki bootstrap — creates vault structure, inits MemPalace, registers MCP |
 | `mempalace-cron.sh` | Daily cron — re-mines workspace, compresses drawers |
