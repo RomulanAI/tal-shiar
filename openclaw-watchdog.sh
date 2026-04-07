@@ -5,8 +5,8 @@
 # When this happens, log output stops entirely (no heartbeat, no reconnect attempts).
 # This script checks the age of the last log entry and restarts if it's too old.
 #
-# Install: add to user crontab (crontab -e)
-#   */5 * * * * /home/prasanna/openclaw-container/openclaw-watchdog.sh
+# Install: run install.sh, or manually add to user crontab (crontab -e):
+#   */5 * * * * /path/to/openclaw-container/openclaw-watchdog.sh
 #
 # Logs to: ~/.local/share/openclaw-watchdog.log
 

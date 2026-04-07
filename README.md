@@ -1,57 +1,80 @@
-# OpenClaw Jeeves — Containerised Mattermost Bot
+# OpenClaw Container — Agentic Mattermost Bot
 
-A containerised [OpenClaw](https://github.com/openclaw/openclaw) deployment that runs as a Mattermost bot ("Jeeves"), managed by systemd on a Linux host via Podman.
+A containerised [OpenClaw](https://github.com/openclaw/openclaw) deployment that runs as a Mattermost bot, managed by systemd on a Linux host via Podman. Includes a persistent wiki knowledgebase (Obsidian-compatible), QMD hybrid search, and MemPalace structured memory.
 
 ## Architecture
 
 ```
-Host (JOHNAIC)
-├── openclaw-config/          # bind-mounted → /config (contains openclaw.json with secrets)
-├── openclaw-workspace/       # bind-mounted → /home/openclaw/workspace (SOUL.md, skills, docs)
-├── openclaw-state/           # bind-mounted → /home/node/.openclaw (agents, memory, sessions)
-└── openclaw-container/       # this repo — Containerfiles, systemd unit, docs
+Host
+├── ~/openclaw-config/        # bind → /config         (openclaw.json, mcporter.json)
+├── ~/openclaw-workspace/     # bind → /home/openclaw/workspace  (skills, skeleton files)
+├── ~/openclaw-state/         # bind → /home/node/.openclaw      (workspace, memory, wiki, sessions)
+│   ├── workspace/            #   The bot's actual working directory
+│   │   ├── AGENTS.md         #   Operating instructions (curated)
+│   │   ├── SOUL.md           #   Persona definition
+│   │   ├── MEMORY.md         #   Long-term memory
+│   │   ├── memory/           #   Daily notes (YYYY-MM-DD.md)
+│   │   └── wiki/             #   Persistent wiki knowledgebase (Obsidian vault)
+│   └── mempalace/            #   MemPalace knowledge graph (ChromaDB + SQLite)
+└── openclaw-container/       # this repo
 ```
 
-The container image `openclaw-jeeves` extends the official `ghcr.io/openclaw/openclaw:latest` with additional tools (LaTeX, pandoc, ffmpeg, sqlite3, ripgrep, fd-find, python3-pip, jq).
+The container extends `ghcr.io/openclaw/openclaw:latest` with:
+- **QMD** — hybrid BM25+vector search engine (indexes wiki + memory every 5 min)
+- **MemPalace** — structured knowledge graph with 19 MCP tools (entity tracking, temporal queries, agent diary)
+- LaTeX, pandoc, ffmpeg, sqlite3, ripgrep, fd-find, python3-pip, jq
 
-All persistent state lives on the host via bind mounts — the container is disposable and can be rebuilt/replaced without data loss.
+All persistent state lives on the host via bind mounts — the container is disposable.
 
 ## Prerequisites
 
-- Podman (tested with 5.2.3+)
-- systemd with user session support (`loginctl enable-linger`)
+- Podman (tested with 5.2+)
+- systemd with user session support
 - A Mattermost server with a bot account and token
-- A Gemini API key (or other LLM provider)
+- A Gemini API key (or other LLM provider key)
 
 ## Quick Start
 
-### 1. Build the image
+### Option A: Automated install
 
 ```bash
-cd openclaw-container
+git clone <this-repo> ~/openclaw-container
+cd ~/openclaw-container
+./install.sh
+```
+
+`install.sh` does everything: creates directories, copies config, builds the image, installs the systemd service and cron jobs, starts the bot, and bootstraps the wiki. It will pause and ask you to edit the config file with your API keys.
+
+### Option B: Manual setup
+
+#### 1. Build the image
+
+```bash
+cd ~/openclaw-container
 podman build -f Containerfile.jeeves -t openclaw-jeeves:latest .
 ```
 
-### 2. Create host directories and config
+#### 2. Create host directories and config
 
 ```bash
 mkdir -p ~/openclaw-config ~/openclaw-workspace ~/openclaw-state
 
 # Copy and edit the example config
 cp openclaw.json.example ~/openclaw-config/openclaw.json
-# Edit ~/openclaw-config/openclaw.json — set your:
-#   - Gemini API key
-#   - Mattermost bot token and server URL
-#   - Gateway auth token
 ```
 
-### 3. Test run (manual)
+Edit `~/openclaw-config/openclaw.json` — you must set:
+- `env.GEMINI_API_KEY` — your Gemini API key (get one at https://aistudio.google.com/apikey)
+- `channels.mattermost.botToken` — your Mattermost bot token
+- `channels.mattermost.baseUrl` — your Mattermost server URL
+- `gateway.auth.token` — a random secret string for the control UI
+
+#### 3. Test run (manual)
 
 ```bash
 podman run -d --name openclaw \
   --hostname $(hostname) \
   -e OPENCLAW_CONFIG_PATH=/config/openclaw.json \
-  -e OPENCLAW_GATEWAY_TOKEN=your-gateway-token \
   -v ~/openclaw-config:/config \
   -v ~/openclaw-workspace:/home/openclaw/workspace \
   -v ~/openclaw-state:/home/node/.openclaw \
@@ -59,158 +82,159 @@ podman run -d --name openclaw \
 
 # Check it connected
 podman logs -f openclaw
-# Look for: [mattermost] connected as @jeeves
+# Look for: [mattermost] connected as @<your-bot-name>
 ```
 
-### 4. Install systemd service (recommended)
+#### 4. Install systemd service
 
 ```bash
-# Copy the service file
+mkdir -p ~/.config/systemd/user
 cp container-openclaw.service ~/.config/systemd/user/
-
-# Edit the service file if your paths/tokens differ from defaults
-# Then enable and start
 systemctl --user daemon-reload
 systemctl --user enable --now container-openclaw.service
 
-# Enable linger so the service runs even when you're logged out
+# Keep the service running after logout
 loginctl enable-linger $USER
 ```
 
-### 5. Stop the manual container (if running)
+The service file uses systemd specifiers (`%h` for home dir, `%H` for hostname) — no editing needed.
 
-If you tested with `podman run` first, stop it before starting the systemd service:
-
-```bash
-podman stop openclaw && podman rm openclaw
-```
-
-### 6. Install the watchdog (recommended)
-
-The systemd service handles process crashes, but the Mattermost WebSocket can silently die while the process stays alive. The watchdog script detects this by checking the age of the last log entry and restarts the service if it's stale.
+#### 5. Bootstrap the wiki knowledgebase
 
 ```bash
-# Install the cron job (runs every 5 minutes)
-crontab -l > /tmp/crontab.bak 2>/dev/null
-(crontab -l 2>/dev/null; echo ""; echo "# OpenClaw watchdog — restart if Mattermost websocket silently dies"; echo "*/5 * * * * $HOME/openclaw-container/openclaw-watchdog.sh") | crontab -
+./setup-wiki.sh
 ```
 
-The watchdog logs to `~/.local/share/openclaw-watchdog.log`. It only triggers a restart if there are no log entries for 30 minutes (configurable via `STALE_THRESHOLD_MINUTES` in the script).
+This creates the wiki directory structure, seed files, initializes MemPalace, and registers the MCP server. Safe to re-run.
+
+#### 6. Install cron jobs
+
+```bash
+REPO="$(pwd)"
+
+# Watchdog: restarts bot if Mattermost websocket silently dies (every 5 min)
+(crontab -l 2>/dev/null; echo ""; echo "# OpenClaw watchdog"; echo "*/5 * * * * $REPO/openclaw-watchdog.sh") | crontab -
+
+# MemPalace: re-mines workspace + compresses drawers (daily at 3 AM)
+(crontab -l 2>/dev/null; echo ""; echo "# MemPalace maintenance"; echo "0 3 * * * $REPO/mempalace-cron.sh") | crontab -
+```
+
+## Wiki Knowledgebase
+
+The bot maintains a persistent wiki at `~/openclaw-state/workspace/wiki/` following [Karpathy's LLM Wiki pattern](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f):
+
+- **Sources** (`wiki/sources/`) — raw curated documents (immutable)
+- **Concepts** (`wiki/concepts/`) — idea and pattern pages
+- **Entities** (`wiki/entities/`) — people, projects, tools, organizations
+- **Topics** (`wiki/topics/`) — how-tos, guides, thematic overviews
+
+The wiki uses `[[wikilinks]]` and YAML frontmatter, making it an **Obsidian vault**. Open `~/openclaw-state/workspace/wiki/` in [Obsidian](https://obsidian.md/) to browse with graph view.
+
+### How it works
+
+| Layer | Tool | What it does |
+|-------|------|-------------|
+| Search | **QMD** | Hybrid BM25+vector indexing, auto-updates every 5 min, powers `memory_search` |
+| Structure | **MemPalace** | Knowledge graph (entities, relationships, temporal facts), 19 MCP tools via mcporter |
+| Navigation | **Obsidian** | Human browsing — graph view, backlinks, `[[wikilinks]]` |
+
+The bot is instructed (via `AGENTS.md`) to create wiki pages when it learns durable knowledge, and to run lint passes periodically.
+
+### MemPalace MCP tools
+
+Registered via mcporter, available to the bot as first-class tools:
+
+| Category | Tools |
+|----------|-------|
+| Palace | `status`, `list_wings`, `list_rooms`, `search`, `add_drawer`, `get_taxonomy` |
+| Knowledge Graph | `kg_query`, `kg_add`, `kg_invalidate`, `kg_timeline`, `kg_stats` |
+| Navigation | `traverse`, `find_tunnels`, `graph_stats` |
+| Agent Diary | `diary_write`, `diary_read` |
 
 ## Operations
 
 ### View logs
 
 ```bash
-# Via podman
-podman logs --tail 50 openclaw
-
-# Via journalctl (when running under systemd)
-journalctl --user -u container-openclaw.service -f
+podman logs --tail 50 openclaw                          # container logs
+journalctl --user -u container-openclaw.service -f      # systemd journal
+cat ~/.local/share/openclaw-watchdog.log                # watchdog log
+cat ~/.local/share/mempalace-cron.log                   # mempalace maintenance log
 ```
 
-### Restart the bot
+### Restart
 
 ```bash
 systemctl --user restart container-openclaw.service
 ```
 
-### Check status
+### Update to latest OpenClaw
 
 ```bash
-systemctl --user status container-openclaw.service
-```
-
-### Update to latest OpenClaw version
-
-```bash
-# Pull latest base image
 podman pull ghcr.io/openclaw/openclaw:latest
-
-# Rebuild
-cd ~/openclaw-container
 podman build -f Containerfile.jeeves -t openclaw-jeeves:latest .
-
-# Restart the service (it uses --rm and --replace, so it picks up the new image)
 systemctl --user restart container-openclaw.service
-
-# Verify
-podman logs --tail 20 openclaw
 ```
 
-### Check processes inside container
+### Check wiki & memory status
 
 ```bash
-podman exec openclaw ps aux
+podman exec openclaw qmd --version                     # QMD installed
+podman exec openclaw mempalace status                   # MemPalace drawers
+podman exec openclaw npx mcporter list                  # MCP servers
+podman exec openclaw find /home/node/.openclaw/workspace/wiki -name '*.md' | wc -l  # wiki pages
 ```
 
-### Access the OpenClaw control UI
+### Access the control UI
 
-The gateway binds to the LAN interface. Access it at `http://<host-ip>:18789/` using the gateway auth token.
+The gateway binds to the LAN interface at `http://<host-ip>:18789/`. Authenticate with the token from `openclaw.json`.
 
 ## Troubleshooting
 
 ### Bot not responding on Mattermost
 
-This is usually a stale WebSocket connection. The process stays alive but the Mattermost WebSocket silently dies.
-
-**Diagnosis:**
-```bash
-# Check if the container is running
-podman ps -f name=openclaw
-
-# Check recent logs — if there are no entries for hours, the websocket is dead
-podman logs --tail 20 openclaw
-
-# Verify Mattermost is reachable from the container
-podman exec openclaw curl -s -o /dev/null -w "%{http_code}" https://your-mattermost-server/api/v4/system/ping
-
-# Verify the bot token is still valid
-podman exec openclaw curl -s -H "Authorization: Bearer YOUR_BOT_TOKEN" https://your-mattermost-server/api/v4/users/me | head -5
-```
-
-**Fix:**
-```bash
-systemctl --user restart container-openclaw.service
-```
-
-The systemd service is configured with `Restart=always` and `RestartSec=10`, so if the process crashes it will auto-recover. However, a silently stuck WebSocket (where the process stays alive) won't crash the process — the watchdog cron job handles this case (see Step 6 in Quick Start).
-
-### Zombie processes accumulating
-
-The container runs as PID 1 (no init system). Child processes (julia, curl, etc.) can become zombies. A restart clears them:
+Usually a stale WebSocket. The watchdog cron handles this automatically, but you can force a restart:
 
 ```bash
 systemctl --user restart container-openclaw.service
 ```
 
-For a permanent fix, consider adding `--init` to the podman run command in the systemd service file, which adds a tiny init process to reap zombies.
+Check logs for `[mattermost] connected as @<bot-name>` to confirm reconnection.
+
+### Config has CHANGE_ME placeholders
+
+The bot won't start properly until you edit `~/openclaw-config/openclaw.json` and replace all `CHANGE_ME` values with real credentials.
 
 ### Container won't start after reboot
 
-Ensure linger is enabled:
 ```bash
-loginctl enable-linger $USER
+loginctl enable-linger $USER     # ensure services survive logout
+podman images | grep openclaw    # ensure image exists
 ```
 
-Check that the image exists:
+### MemPalace not initialized
+
+Run the wiki bootstrap:
+
 ```bash
-podman images | grep openclaw-jeeves
+./setup-wiki.sh
 ```
 
 ## File Reference
 
 | File | Purpose |
 |------|---------|
-| `Containerfile.jeeves` | Main Containerfile — extends official image with extra tools |
-| `Dockerfile` | Original/minimal Containerfile (not currently used) |
-| `container-openclaw.service` | systemd user service unit |
-| `openclaw.json.example` | Example config (no secrets) |
-| `openclaw-watchdog.sh` | Cron-based watchdog for stale websocket detection |
-| `.gitignore` | Excludes `openclaw/` dir and secret files |
+| `Containerfile.jeeves` | Container image — extends official OpenClaw with QMD, MemPalace, dev tools |
+| `container-openclaw.service` | systemd user service (uses `%h`/`%H` specifiers, no hardcoded paths) |
+| `install.sh` | Automated setup — builds image, installs service, cron, bootstraps wiki |
+| `setup-wiki.sh` | Wiki bootstrap — creates vault structure, inits MemPalace, registers MCP |
+| `mempalace-cron.sh` | Daily cron — re-mines workspace, compresses drawers |
+| `openclaw-watchdog.sh` | Watchdog cron — restarts if Mattermost websocket stalls |
+| `openclaw.json.example` | Config template (includes memory/QMD/wiki settings) |
+| `WIKI-KNOWLEDGEBASE-PLAN.md` | Architecture reference for the wiki knowledgebase system |
 
-| Host Path | Container Mount | Purpose |
-|-----------|----------------|---------|
-| `~/openclaw-config/` | `/config` | Configuration (openclaw.json with API keys) |
-| `~/openclaw-workspace/` | `/home/openclaw/workspace` | Workspace (SOUL.md, skills, custom docs) |
-| `~/openclaw-state/` | `/home/node/.openclaw` | Persistent state (agents, memory, sessions) |
+| Host Path | Container Path | Purpose |
+|-----------|---------------|---------|
+| `~/openclaw-config/` | `/config` | Config files (openclaw.json, mcporter.json) |
+| `~/openclaw-workspace/` | `/home/openclaw/workspace` | Skills and skeleton workspace files |
+| `~/openclaw-state/` | `/home/node/.openclaw` | Persistent state (workspace, memory, wiki, sessions, mempalace) |

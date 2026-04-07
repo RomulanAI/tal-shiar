@@ -399,7 +399,7 @@ if exec_ bash -c "test -f $MCPORTER_CONFIG" 2>/dev/null; then
 else
     # Write config to the persisted /config mount
     # (Containerfile symlinks /app/config/mcporter.json -> /config/mcporter.json)
-    cat > "$(dirname "$0")/../openclaw-config/mcporter.json" << 'MCPEOF'
+    cat > "$HOME/openclaw-config/mcporter.json" << 'MCPEOF'
 {
   "mcpServers": {
     "mempalace": {

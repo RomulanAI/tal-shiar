@@ -45,11 +45,30 @@
       }
     }
   },
+  "memory": {
+    "backend": "qmd",
+    "citations": "auto",
+    "qmd": {
+      "includeDefaultMemory": true,
+      "searchMode": "search",
+      "update": { "interval": "5m", "onBoot": true, "waitForBootSync": false },
+      "limits": { "maxResults": 8, "timeoutMs": 5000 },
+      "scope": {
+        "default": "deny",
+        "rules": [
+          { "action": "allow", "match": { "chatType": "direct" } }
+        ]
+      },
+      "paths": [
+        { "name": "wiki", "path": "/home/node/.openclaw/workspace/wiki", "pattern": "**/*.md" }
+      ]
+    }
+  },
   "channels": {
     "mattermost": {
       "enabled": true,
       "botToken": "CHANGE_ME_your_mattermost_bot_token",
-      "baseUrl": "https://your-mattermost-server.example.com",
+      "baseUrl": "https://CHANGE_ME_your-mattermost-server.example.com",
       "dmPolicy": "open",
       "allowFrom": ["*"],
       "chatmode": "onmessage"

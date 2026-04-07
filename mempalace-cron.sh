@@ -2,8 +2,8 @@
 # mempalace-cron.sh — Daily maintenance for MemPalace knowledge graph
 # Runs via crontab on the host, executes inside the openclaw container.
 #
-# Install: crontab -e → add:
-#   0 3 * * * /home/prasanna/openclaw-container/mempalace-cron.sh
+# Install: run install.sh, or manually add to user crontab (crontab -e):
+#   0 3 * * * /path/to/openclaw-container/mempalace-cron.sh
 #
 # Logs to: ~/.local/share/mempalace-cron.log
 
