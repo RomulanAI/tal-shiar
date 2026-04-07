@@ -291,26 +291,22 @@ QMD handles **content retrieval** (find the right pages). MemPalace handles **st
 | Agent over-writes to wiki (noise) | SCHEMA.md lint rules + periodic human review |
 | Wiki grows too large for QMD indexing | QMD handles large corpora well; monitor embed times |
 
-## Current State (implemented)
+## Implementation Status
 
-All phases are complete:
+All phases have been implemented. For current verification, run:
 
-- **QMD v2.1.0** — installed, backend enabled, wiki collection indexed every 5min
-- **MemPalace v3.0.0** — installed, initialized, 509 drawers, persisted at `~/openclaw-state/mempalace/`
-- **MemPalace MCP** — 19 tools registered via mcporter (`~/openclaw-config/mcporter.json`), persists across restarts
-- **Wiki vault** — at `~/openclaw-state/workspace/wiki/`, Obsidian-compatible with `.obsidian/app.json`
-- **AGENTS.md** — updated with wiki + mempalace instructions (appended, original preserved)
-- **Wiki skill** — at `~/openclaw-workspace/skills/wiki/SKILL.md`
-- **Cron** — daily at 3 AM: `mempalace mine` + `mempalace compress` (`mempalace-cron.sh`)
-- **Setup script** — `setup-wiki.sh` reproduces all post-container-start setup (idempotent)
+```bash
+podman exec openclaw qmd --version                # QMD search engine
+podman exec openclaw mempalace status              # MemPalace drawers + rooms
+podman exec openclaw npx mcporter list             # MCP server (19 tools)
+```
 
-## Verification Checklist
+Components deployed:
+- **QMD** — installed via Containerfile (`npm install -g @tobilu/qmd`), enabled in `openclaw.json`
+- **MemPalace** — installed via Containerfile (`pip install mempalace`), initialized per deployment by `setup-wiki.sh`
+- **Wiki structure** — bootstrapped by `setup-wiki.sh` at `~/openclaw-state/workspace/wiki/`
+- **MCP server** — registered in `~/openclaw-config/mcporter.json`, created by `install.sh`
+- **Cron jobs** — watchdog (every 5 min) + mempalace maintenance (daily 3 AM), installed by `install.sh`
+- **Agent instructions** — wiki + mempalace sections appended to `AGENTS.md` in the state workspace
 
-- [x] `podman exec openclaw which qmd` returns `/usr/local/bin/qmd`
-- [x] Container logs show `qmd memory startup initialization armed`
-- [x] `podman exec openclaw mempalace status` shows 509 drawers
-- [x] `podman exec openclaw npx mcporter list` shows mempalace with 19 tools
-- [x] Restart container → all data persists (QMD, MemPalace, mcporter config)
-- [ ] DM Psmith "Create a wiki page about X" → page appears in `wiki/`
-- [ ] Open `~/openclaw-state/workspace/wiki/` in Obsidian → wikilinks render, graph works
-- [ ] Psmith uses `mcporter call mempalace.*` tools natively
+See README.md for the full setup and operations guide.

@@ -38,7 +38,10 @@ write_file() {
     local path="$1"
     # Only write if file doesn't exist or is empty
     if [ "$(exec_ bash -c "wc -c < '$path' 2>/dev/null || echo 0")" -le 1 ]; then
-        exec_ bash -c "cat > '$path'" <<< "$2"
+        if ! exec_ bash -c "cat > '$path'" <<< "$2"; then
+            log "  ERROR: failed to write $path"
+            return 1
+        fi
         log "  created: $path"
     else
         log "  exists:  $path (skipped)"
@@ -392,14 +395,13 @@ exec_ mempalace compress 2>&1 | grep -E '(Total|stored)' || true
 # 5. Register MemPalace MCP server via mcporter
 # ──────────────────────────────────────────────────────
 
-MCPORTER_CONFIG="/config/mcporter.json"
-log "Registering MemPalace MCP server..."
-if exec_ bash -c "test -f $MCPORTER_CONFIG" 2>/dev/null; then
-    log "  mcporter.json already exists (skipped)"
+log "Checking MemPalace MCP server registration..."
+MCPORTER_HOST="$HOME/openclaw-config/mcporter.json"
+if [ -f "$MCPORTER_HOST" ]; then
+    log "  mcporter.json exists on host"
 else
-    # Write config to the persisted /config mount
-    # (Containerfile symlinks /app/config/mcporter.json -> /config/mcporter.json)
-    cat > "$HOME/openclaw-config/mcporter.json" << 'MCPEOF'
+    # Fallback: create it if install.sh wasn't used
+    cat > "$MCPORTER_HOST" << 'MCPEOF'
 {
   "mcpServers": {
     "mempalace": {
@@ -408,9 +410,9 @@ else
   }
 }
 MCPEOF
-    log "  created mcporter.json with mempalace MCP server"
+    log "  created mcporter.json (MemPalace MCP server)"
 fi
-# Verify
+# Verify MCP server is reachable from inside the container
 exec_ npx --yes mcporter list 2>&1 | grep -E '(mempalace|healthy)' | head -2
 
 # ──────────────────────────────────────────────────────

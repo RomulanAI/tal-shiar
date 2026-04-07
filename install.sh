@@ -2,13 +2,14 @@
 # install.sh — Set up the OpenClaw container deployment from scratch.
 #
 # What this does:
-#   1. Creates host directories for config, workspace, and state
-#   2. Copies example config if no config exists
-#   3. Builds the container image
-#   4. Installs the systemd user service
-#   5. Installs cron jobs (watchdog + mempalace maintenance)
-#   6. Starts the service
-#   7. Runs wiki bootstrap (setup-wiki.sh)
+#   1. Checks prerequisites (podman, systemctl)
+#   2. Creates host directories for config, workspace, and state
+#   3. Copies example config + mcporter MCP config if they don't exist
+#   4. Builds the container image
+#   5. Installs the systemd user service
+#   6. Installs cron jobs (watchdog + mempalace maintenance)
+#   7. Starts the service and waits for readiness
+#   8. Runs wiki bootstrap (setup-wiki.sh)
 #
 # Safe to re-run — skips steps that are already done.
 #
@@ -30,6 +31,29 @@ log() { echo "[$(date '+%H:%M:%S')] $*"; }
 warn() { echo "[$(date '+%H:%M:%S')] WARNING: $*" >&2; }
 
 # ──────────────────────────────────────────────────────
+# 0. Preflight checks
+# ──────────────────────────────────────────────────────
+
+if ! command -v podman &> /dev/null; then
+    echo "ERROR: podman is not installed."
+    echo "  Install: https://podman.io/docs/installation"
+    exit 1
+fi
+
+if ! command -v systemctl &> /dev/null; then
+    echo "ERROR: systemctl is not available. This deployment requires systemd."
+    exit 1
+fi
+
+if ! systemctl --user status &> /dev/null; then
+    echo "ERROR: systemd user session is not available."
+    echo "  You may need to enable lingering: loginctl enable-linger $USER"
+    exit 1
+fi
+
+log "Preflight OK: podman $(podman --version | awk '{print $NF}'), systemd user session active"
+
+# ──────────────────────────────────────────────────────
 # 1. Create host directories
 # ──────────────────────────────────────────────────────
 
@@ -37,7 +61,7 @@ log "Creating host directories..."
 mkdir -p "$CONFIG_DIR" "$WORKSPACE_DIR" "$STATE_DIR" "$SERVICE_DIR"
 
 # ──────────────────────────────────────────────────────
-# 2. Config file
+# 2. Config files
 # ──────────────────────────────────────────────────────
 
 if [ ! -f "$CONFIG_DIR/openclaw.json" ]; then
@@ -59,6 +83,23 @@ fi
 if grep -q "CHANGE_ME" "$CONFIG_DIR/openclaw.json" 2>/dev/null; then
     warn "Config still contains CHANGE_ME placeholders — the bot won't work until you fix them."
     warn "  Edit: $CONFIG_DIR/openclaw.json"
+fi
+
+# Create mcporter.json (MemPalace MCP server config) before container starts
+# so the Containerfile symlink (/app/config/mcporter.json -> /config/mcporter.json) works on first boot
+if [ ! -f "$CONFIG_DIR/mcporter.json" ]; then
+    cat > "$CONFIG_DIR/mcporter.json" << 'MCPEOF'
+{
+  "mcpServers": {
+    "mempalace": {
+      "command": "python3 -m mempalace.mcp_server"
+    }
+  }
+}
+MCPEOF
+    log "Created mcporter.json (MemPalace MCP server)"
+else
+    log "mcporter.json exists (skipped)"
 fi
 
 # ──────────────────────────────────────────────────────
@@ -124,15 +165,23 @@ else
     exit 1
 fi
 
-# Wait for gateway to initialize
-log "Waiting for gateway to connect..."
-for i in $(seq 1 12); do
-    if podman logs --tail 5 "$CONTAINER" 2>&1 | grep -q "connected as"; then
-        log "Gateway connected to Mattermost."
+# Wait for container to be fully ready (Mattermost connected + tools available)
+log "Waiting for container to be ready..."
+READY=false
+for i in $(seq 1 24); do
+    if podman logs --tail 10 "$CONTAINER" 2>&1 | grep -q "connected as" && \
+       podman exec "$CONTAINER" which qmd > /dev/null 2>&1; then
+        log "Container is ready (gateway connected, tools available)."
+        READY=true
         break
     fi
     sleep 5
 done
+
+if [ "$READY" = false ]; then
+    warn "Container did not become fully ready within 2 minutes."
+    warn "Continuing with wiki bootstrap anyway — it may fail. Re-run setup-wiki.sh later if needed."
+fi
 
 # ──────────────────────────────────────────────────────
 # 7. Bootstrap wiki knowledgebase
