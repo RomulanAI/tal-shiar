@@ -14,4 +14,8 @@ RUN rm -rf content && mkdir content
 
 EXPOSE 9090
 
-CMD ["npx", "quartz", "build", "--serve", "--port", "9090"]
+# Entrypoint auto-fixes YAML frontmatter issues before Quartz builds
+COPY quartz/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+CMD ["/usr/local/bin/entrypoint.sh"]
