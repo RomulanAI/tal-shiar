@@ -53,7 +53,7 @@ write_file() {
 # ──────────────────────────────────────────────────────
 
 log "Creating wiki directories..."
-exec_ mkdir -p "$WIKI"/{.obsidian,sources/attachments,concepts,entities,topics,templates}
+exec_ mkdir -p "$WIKI"/{.obsidian,_meta,_templates,MOCs,pages,sources/attachments,assets}
 
 # ──────────────────────────────────────────────────────
 # 2. Write seed files
@@ -71,7 +71,7 @@ write_file "$WIKI/.obsidian/app.json" '{
   "promptDelete": true
 }'
 
-write_file "$WIKI/index.md" '---
+write_file "$WIKI/_meta/index.md" '---
 title: Wiki Index
 updated: '"$(date +%Y-%m-%d)"'
 ---
@@ -96,7 +96,7 @@ _No pages yet._
 
 _No sources ingested yet._'
 
-write_file "$WIKI/log.md" '---
+write_file "$WIKI/_meta/log.md" '---
 title: Wiki Operations Log
 ---
 
@@ -127,7 +127,7 @@ Sources are the input to the wiki. When a new source is added here, Psmith shoul
 
 Sources should not be modified after ingestion — they are the ground truth.'
 
-write_file "$WIKI/SCHEMA.md" '---
+write_file "$WIKI/_meta/SCHEMA.md" '---
 title: Wiki Schema
 type: schema
 updated: '"$(date +%Y-%m-%d)"'
@@ -235,7 +235,7 @@ When processing a new source document:
 
 log "Writing page templates..."
 
-write_file "$WIKI/templates/concept.md" '---
+write_file "$WIKI/_templates/concept.md" '---
 title: Concept Name
 aliases: []
 tags: []
@@ -267,7 +267,7 @@ Concrete examples or applications of this concept.
 - [[related-page-1]]
 - [[related-page-2]]'
 
-write_file "$WIKI/templates/entity.md" '---
+write_file "$WIKI/_templates/entity.md" '---
 title: Entity Name
 aliases: []
 tags: []
@@ -299,7 +299,7 @@ How this entity fits into the broader picture.
 - [[related-page-1]]
 - [[related-page-2]]'
 
-write_file "$WIKI/templates/topic.md" '---
+write_file "$WIKI/_templates/topic.md" '---
 title: Topic Name
 aliases: []
 tags: []
@@ -330,7 +330,7 @@ Key conclusions or action items.
 - [[related-page-1]]
 - [[related-page-2]]'
 
-write_file "$WIKI/templates/source-summary.md" '---
+write_file "$WIKI/_templates/source-summary.md" '---
 title: "Summary: Source Title"
 aliases: []
 tags: []
