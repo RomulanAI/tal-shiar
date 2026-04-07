@@ -121,9 +121,10 @@ Sources are the input to the wiki. When a new source is added here, Psmith shoul
 
 1. Read the source document
 2. Identify key concepts, entities, and topics
-3. Create or update pages in `concepts/`, `entities/`, `topics/`
+3. Create or update pages in `pages/`
 4. Write a source summary in this directory (using the `source-summary` template)
-5. Update `index.md` and append to `log.md`
+5. Assign to a MOC via `up:` frontmatter field
+6. Update `_meta/index.md` and append to `_meta/log.md`
 
 Sources should not be modified after ingestion — they are the ground truth.'
 
@@ -137,15 +138,18 @@ updated: '"$(date +%Y-%m-%d)"'
 
 This document governs how the wiki is structured, maintained, and grown. Read this before creating or modifying any wiki page.
 
-## Directory Taxonomy
+## Directory Layout
 
-| Directory | Contains | Example |
-|-----------|----------|---------|
-| `sources/` | Raw, immutable curated documents (papers, articles, data, transcripts) | `sources/karpathy-llm-wiki.md` |
-| `concepts/` | Idea and concept pages — abstract knowledge, patterns, techniques | `concepts/retrieval-augmented-generation.md` |
-| `entities/` | Named things — people, projects, tools, services, organizations | `entities/mattermost.md` |
-| `topics/` | How-tos, guides, overviews, and thematic summaries | `topics/container-deployment.md` |
-| `templates/` | Page scaffolds — not indexed, used by the agent when creating pages | `templates/concept.md` |
+| Directory | Contains |
+|-----------|----------|
+| `_meta/` | Machine navigation: index.md, log.md, SCHEMA.md |
+| `_templates/` | Page scaffolds (ignored by Quartz) |
+| `MOCs/` | Maps of Content — human navigation (curated topic hubs) |
+| `pages/` | All content pages — flat, one idea per file |
+| `sources/` | Raw/immutable curated documents |
+| `assets/` | Images, PDFs, attachments |
+
+**All content pages go in `pages/`.** Type is in frontmatter, not folder.
 
 ## Naming Conventions
 
@@ -159,15 +163,18 @@ Every wiki page (except templates and this schema) must have YAML frontmatter:
 
 ```yaml
 ---
-title: Page Title
-aliases: [alternate name, abbreviation]
+title: "Page Title"           # ALWAYS quote — YAML breaks on colons
+type: concept                 # concept | entity | topic | analysis | lesson | moc | source
 tags: [tag1, tag2]
-type: concept | entity | topic | source-summary
+status: draft                 # stub | draft | complete | stale
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
-related: ["[[other-page]]", "[[another-page]]"]
+up: "[[Parent MOC]]"          # Which MOC this belongs to
+related: ["[[other-page]]"]
 ---
 ```
+
+**Title must always be quoted.** Unquoted colons break the wiki viewer.
 
 ## Cross-Referencing Rules
 
@@ -179,7 +186,7 @@ related: ["[[other-page]]", "[[another-page]]"]
 
 ## Page Structure
 
-Each page should follow the template for its type (see `templates/`). General structure:
+Each page should follow the template for its type (see `_templates/`). General structure:
 
 1. YAML frontmatter
 2. H1 title (matches frontmatter `title`)

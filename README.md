@@ -138,12 +138,13 @@ Features: `[[wikilinks]]`, graph view, backlinks, full-text search, hot-reload o
 
 ### Wiki Structure
 
-The bot maintains a persistent wiki at `~/openclaw-state/workspace/wiki/` following [Karpathy's LLM Wiki pattern](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f):
+The bot maintains a persistent wiki at `~/openclaw-state/workspace/wiki/` following [Karpathy's LLM Wiki pattern](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) with [Obsidian PKM](https://obsidian.md/) conventions (see `WIKI-STRUCTURE-DESIGN.md` for the full rationale):
 
-- **Sources** (`wiki/sources/`) — raw curated documents (immutable)
-- **Concepts** (`wiki/concepts/`) — idea and pattern pages
-- **Entities** (`wiki/entities/`) — people, projects, tools, organizations
-- **Topics** (`wiki/topics/`) — how-tos, guides, thematic overviews
+- **`pages/`** — all content (flat, one idea per file; type is in frontmatter, not folder)
+- **`MOCs/`** — Maps of Content: curated topic hubs for human navigation
+- **`sources/`** — raw curated documents (immutable)
+- **`_meta/`** — machine navigation: `index.md`, `log.md`, `SCHEMA.md`
+- **`_templates/`** — page scaffolds
 
 The wiki uses `[[wikilinks]]` and YAML frontmatter, making it an **Obsidian vault**. Open `~/openclaw-state/workspace/wiki/` in [Obsidian](https://obsidian.md/) to browse with graph view.
 

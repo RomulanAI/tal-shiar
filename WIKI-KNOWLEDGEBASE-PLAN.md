@@ -113,20 +113,20 @@ Location: `~/openclaw-workspace/wiki/` (persisted via existing bind mount)
 
 ```
 wiki/
-  .obsidian/app.json        # Obsidian vault config (wikilinks enabled)
-  SCHEMA.md                 # Conventions, structure, templates, lint rules
-  index.md                  # Content catalog (maintained by agent)
-  log.md                    # Append-only operations log
-  sources/                  # Layer 1: raw curated documents
-  concepts/                 # Layer 2: concept pages
-  entities/                 # Layer 2: entity pages (people, projects, tools)
-  topics/                   # Layer 2: topic summaries, how-tos
-  templates/                # Page templates for the agent
-    concept.md
-    entity.md
-    topic.md
-    source-summary.md
+  .obsidian/app.json        # Obsidian vault config
+  _meta/                    # Machine navigation
+    index.md                # Content catalog (LLM reads this)
+    log.md                  # Append-only operations log
+    SCHEMA.md               # Conventions, rules, templates
+  _templates/               # Page scaffolds (ignored by Quartz)
+  MOCs/                     # Maps of Content (human navigation)
+  pages/                    # All content (flat, one idea per file)
+  sources/                  # Raw curated documents (immutable)
+  assets/                   # Images, PDFs, attachments
 ```
+
+> **Note:** Wiki was restructured after initial implementation.
+> See `WIKI-STRUCTURE-DESIGN.md` for the full design rationale.
 
 #### 1.3 Enable QMD backend in config
 
@@ -160,7 +160,7 @@ wiki/
 
 #### 1.4 Add agent instructions
 
-**File**: `~/openclaw-workspace/AGENTS.md` — append wiki section with ingest/query/lint workflows, `[[wikilink]]` conventions, reference to `wiki/SCHEMA.md`.
+**File**: `~/openclaw-workspace/AGENTS.md` — append wiki section with ingest/query/lint workflows, `[[wikilink]]` conventions, reference to `wiki/_meta/SCHEMA.md`.
 
 **File**: `~/openclaw-workspace/skills/wiki/SKILL.md` — detailed operational skill covering ingest workflow, query workflow, lint checklist, page creation rules, cross-referencing rules.
 
@@ -266,11 +266,12 @@ QMD handles **content retrieval** (find the right pages). MemPalace handles **st
 | Modify | `~/openclaw-config/openclaw.json` — add memory/QMD config |
 | Modify | `~/openclaw-workspace/AGENTS.md` — add wiki section |
 | Create | `~/openclaw-workspace/wiki/.obsidian/app.json` |
-| Create | `~/openclaw-workspace/wiki/SCHEMA.md` |
-| Create | `~/openclaw-workspace/wiki/index.md` |
-| Create | `~/openclaw-workspace/wiki/log.md` |
+| Create | `~/openclaw-state/workspace/wiki/_meta/SCHEMA.md` |
+| Create | `~/openclaw-state/workspace/wiki/_meta/index.md` |
+| Create | `~/openclaw-state/workspace/wiki/_meta/log.md` |
+| Create | `~/openclaw-state/workspace/wiki/MOCs/*.md` |
 | Create | `~/openclaw-workspace/wiki/{sources,concepts,entities,topics}/` |
-| Create | `~/openclaw-workspace/wiki/templates/{concept,entity,topic,source-summary}.md` |
+| Create | `~/openclaw-state/workspace/wiki/_templates/{concept,entity,topic,moc,source-summary}.md` |
 | Create | `~/openclaw-workspace/skills/wiki/SKILL.md` |
 
 ### Phase 2
