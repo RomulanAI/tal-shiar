@@ -103,6 +103,28 @@ else
 fi
 
 # ──────────────────────────────────────────────────────
+# 2b. Workspace templates & skills
+# ──────────────────────────────────────────────────────
+
+log "Setting up workspace templates and skills..."
+
+for f in AGENTS.md SOUL.md USER.md; do
+    if [ ! -f "$WORKSPACE_DIR/$f" ]; then
+        cp "$REPO_DIR/templates/$f" "$WORKSPACE_DIR/$f"
+        log "  Copied template: $f"
+    else
+        log "  Workspace $f exists (skipped)"
+    fi
+done
+
+if [ ! -d "$WORKSPACE_DIR/skills" ] || [ -z "$(ls -A "$WORKSPACE_DIR/skills" 2>/dev/null)" ]; then
+    cp -r "$REPO_DIR/skills" "$WORKSPACE_DIR/skills"
+    log "  Copied baseline skills ($(ls "$REPO_DIR/skills" | wc -l) skills)"
+else
+    log "  Workspace skills/ exists (skipped)"
+fi
+
+# ──────────────────────────────────────────────────────
 # 3. Build the container image
 # ──────────────────────────────────────────────────────
 
