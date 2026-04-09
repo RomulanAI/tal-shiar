@@ -27,7 +27,7 @@ log() { echo "[$(date '+%H:%M:%S')] $*"; }
 
 if ! podman ps --filter name="$CONTAINER" --format '{{.Names}}' | grep -q "^${CONTAINER}$"; then
     echo "ERROR: container '$CONTAINER' is not running."
-    echo "Start it first: systemctl --user start container-openclaw.service"
+    echo "Start it first: systemctl --user start openclaw-compose.service"
     exit 1
 fi
 

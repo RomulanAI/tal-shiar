@@ -17,7 +17,7 @@ export XDG_RUNTIME_DIR="/run/user/$(id -u)"
 export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
 
 CONTAINER="openclaw"
-SERVICE="container-openclaw.service"
+SERVICE="openclaw-compose.service"
 STALE_THRESHOLD_MINUTES=30
 LOG_FILE="${HOME}/.local/share/openclaw-watchdog.log"
 

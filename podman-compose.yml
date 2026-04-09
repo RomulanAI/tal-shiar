@@ -3,6 +3,8 @@ services:
     image: localhost/openclaw-jeeves:latest
     container_name: openclaw
     hostname: "${HOSTNAME}"
+    ports:
+      - "18789:18789"
     environment:
       - OPENCLAW_CONFIG_PATH=/config/openclaw.json
     volumes:

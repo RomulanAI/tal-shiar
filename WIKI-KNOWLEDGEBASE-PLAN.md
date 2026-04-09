@@ -168,7 +168,7 @@ wiki/
 
 ```bash
 podman build -f Containerfile.jeeves -t openclaw-jeeves:latest .
-systemctl --user restart container-openclaw.service
+systemctl --user restart openclaw-compose.service
 ```
 
 ### Phase 2: Add MemPalace (after Phase 1 is stable)

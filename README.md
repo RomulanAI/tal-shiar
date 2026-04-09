@@ -175,7 +175,7 @@ Registered via mcporter, available to the bot as first-class tools:
 
 ```bash
 podman logs --tail 50 openclaw                          # container logs
-journalctl --user -u container-openclaw.service -f      # systemd journal
+journalctl --user -u openclaw-compose.service -f         # systemd journal
 cat ~/.local/share/openclaw-watchdog.log                # watchdog log
 cat ~/.local/share/mempalace-cron.log                   # mempalace maintenance log
 ```
