@@ -1,7 +1,7 @@
 #!/bin/bash
 # setup-wiki.sh — Bootstrap the wiki knowledgebase, MemPalace, and QMD indexing
 #
-# Run this AFTER the openclaw container is running (via systemd service).
+# Run this AFTER the tal-shiar container is running (via systemd service).
 # It creates the wiki directory structure, seed files, and initializes MemPalace.
 #
 # Safe to re-run: skips files that already exist, re-mines MemPalace idempotently.
@@ -10,7 +10,7 @@
 #   ./setup-wiki.sh
 #
 # Prerequisites:
-#   - openclaw container running (systemctl --user start container-openclaw.service)
+#   - tal-shiar container running (systemctl --user start openclaw-compose.service)
 #   - Container image built from Containerfile.jeeves (includes QMD + MemPalace)
 
 set -euo pipefail

@@ -24,6 +24,21 @@
             "name": "gemini-3-flash-preview",
             "reasoning": true,
             "contextWindow": 1048576,
+            "maxTokens": 65536
+          },
+          {
+            "id": "gemini-3-pro-preview",
+            "name": "gemini-3-pro-preview",
+            "reasoning": true,
+            "contextWindow": 1048576,
+            "maxTokens": 65536
+          },
+          {
+            "id": "gemma-4-31b-it",
+            "name": "Gemma 4 31B",
+            "api": "google-generative-ai",
+            "reasoning": true,
+            "contextWindow": 262144,
             "maxTokens": 8192
           }
         ]
@@ -33,13 +48,27 @@
   "agents": {
     "defaults": {
       "model": {
-        "primary": "google/gemini-3-flash-preview"
+        "primary": "google/gemma-4-31b-it",
+        "fallbacks": ["google/gemini-3-pro-preview"]
       },
       "thinkingDefault": "medium",
+      "subagents": {
+        "model": "google/gemma-4-31b-it"
+      },
       "models": {
+        "google/gemini-3-pro-preview": {
+          "params": {
+            "maxTokens": 65536
+          }
+        },
         "google/gemini-3-flash-preview": {
           "params": {
-            "maxTokens": 16384
+            "maxTokens": 65536
+          }
+        },
+        "google/gemma-4-31b-it": {
+          "params": {
+            "maxTokens": 8192
           }
         }
       }

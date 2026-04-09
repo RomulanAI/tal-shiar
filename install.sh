@@ -1,5 +1,5 @@
 #!/bin/bash
-# install.sh — Set up the OpenClaw container deployment from scratch.
+# install.sh — Set up the Tal Shiar container deployment from scratch.
 #
 # What this does:
 #   1. Checks prerequisites (podman, systemctl)
@@ -108,7 +108,7 @@ fi
 
 log "Building container images..."
 podman build -f "$REPO_DIR/Containerfile.jeeves" -t openclaw-jeeves:latest "$REPO_DIR"
-podman build -f "$REPO_DIR/Containerfile.quartz" -t openclaw-container_quartz:latest "$REPO_DIR"
+podman build -f "$REPO_DIR/Containerfile.quartz" -t tal-shiar_quartz:latest "$REPO_DIR"
 log "Images built: openclaw-jeeves + quartz"
 
 # ──────────────────────────────────────────────────────
@@ -147,7 +147,7 @@ install_cron() {
 }
 
 install_cron "openclaw-watchdog.sh" "*/5 * * * *" "$REPO_DIR/openclaw-watchdog.sh" \
-    "OpenClaw watchdog — restart if Mattermost websocket silently dies"
+    "Tal Shiar watchdog — restart if Mattermost websocket silently dies"
 
 install_cron "mempalace-cron.sh" "0 3 * * *" "$REPO_DIR/mempalace-cron.sh" \
     "MemPalace daily maintenance — re-mine workspace + compress drawers"

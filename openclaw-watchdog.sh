@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# openclaw-watchdog.sh — Detects a silently stuck OpenClaw container and restarts it.
+# openclaw-watchdog.sh — Detects a silently stuck Tal Shiar container and restarts it.
 #
-# The OpenClaw Mattermost websocket can silently die while the process stays alive.
+# The Mattermost websocket can silently die while the process stays alive.
 # When this happens, log output stops entirely (no heartbeat, no reconnect attempts).
 # This script checks the age of the last log entry and restarts if it's too old.
 #
 # Install: run install.sh, or manually add to user crontab (crontab -e):
-#   */5 * * * * /path/to/openclaw-container/openclaw-watchdog.sh
+#   */5 * * * * /path/to/tal-shiar/openclaw-watchdog.sh
 #
 # Logs to: ~/.local/share/openclaw-watchdog.log
 

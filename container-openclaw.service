@@ -1,5 +1,5 @@
 # container-openclaw.service
-# OpenClaw bot — Mattermost gateway in a Podman container
+# Tal Shiar bot — Mattermost gateway in a Podman container (legacy, single-container)
 #
 # Installed by: install.sh (or manually copy to ~/.config/systemd/user/)
 # Uses systemd specifiers: %h = home dir, %H = hostname — no editing needed.
@@ -11,7 +11,7 @@
 #   loginctl enable-linger $USER   # keep running after logout
 
 [Unit]
-Description=OpenClaw Bot (Podman container)
+Description=Tal Shiar Bot (Podman container, legacy)
 Documentation=man:podman-generate-systemd(1)
 Wants=network-online.target
 After=network-online.target

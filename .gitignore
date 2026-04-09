@@ -1,4 +1,4 @@
-# Upstream OpenClaw package (large, contains node_modules)
+# Upstream openclaw package (large, contains node_modules)
 openclaw/
 
 # Config files with secrets (API keys, bot tokens)

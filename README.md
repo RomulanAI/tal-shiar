@@ -1,4 +1,4 @@
-# OpenClaw Container — Agentic Mattermost Bot
+# Tal Shiar — Agentic Mattermost Bot
 
 A containerised [OpenClaw](https://github.com/openclaw/openclaw) deployment that runs as a Mattermost bot, managed by systemd on a Linux host via Podman. Includes a persistent wiki knowledgebase (Obsidian-compatible), QMD hybrid search, and MemPalace structured memory.
 
@@ -6,7 +6,7 @@ A containerised [OpenClaw](https://github.com/openclaw/openclaw) deployment that
 
 ```
 podman-compose up -d
-├── openclaw container        (bot + QMD search + MemPalace)
+├── tal-shiar container       (bot + QMD search + MemPalace)
 └── quartz-wiki container     (wiki viewer on :9090)
 
 Host
@@ -20,7 +20,7 @@ Host
 │   │   ├── memory/           #   Daily notes (YYYY-MM-DD.md)
 │   │   └── wiki/             #   Persistent wiki knowledgebase (Obsidian vault)
 │   └── mempalace/            #   MemPalace knowledge graph (ChromaDB + SQLite)
-└── openclaw-container/       # this repo
+└── tal-shiar/       # this repo
 ```
 
 The container extends `ghcr.io/openclaw/openclaw:latest` with:
@@ -43,8 +43,8 @@ All persistent state lives on the host via bind mounts — the container is disp
 ### Option A: Automated install
 
 ```bash
-git clone <this-repo> ~/openclaw-container
-cd ~/openclaw-container
+git clone <this-repo> ~/tal-shiar
+cd ~/tal-shiar
 ./install.sh
 ```
 
@@ -55,7 +55,7 @@ cd ~/openclaw-container
 #### 1. Build the image
 
 ```bash
-cd ~/openclaw-container
+cd ~/tal-shiar
 podman build -f Containerfile.jeeves -t openclaw-jeeves:latest .
 ```
 
@@ -102,7 +102,7 @@ systemctl --user enable --now openclaw-compose.service
 loginctl enable-linger $USER
 ```
 
-This starts both the OpenClaw bot and Quartz wiki viewer via podman-compose.
+This starts both the Tal Shiar bot and Quartz wiki viewer via podman-compose.
 
 #### 5. Bootstrap the wiki knowledgebase
 
@@ -118,7 +118,7 @@ This creates the wiki directory structure, seed files, initializes MemPalace, an
 REPO="$(pwd)"
 
 # Watchdog: restarts bot if Mattermost websocket silently dies (every 5 min)
-(crontab -l 2>/dev/null; echo ""; echo "# OpenClaw watchdog"; echo "*/5 * * * * $REPO/openclaw-watchdog.sh") | crontab -
+(crontab -l 2>/dev/null; echo ""; echo "# Tal Shiar watchdog"; echo "*/5 * * * * $REPO/openclaw-watchdog.sh") | crontab -
 
 # MemPalace: re-mines workspace + compresses drawers (daily at 3 AM)
 (crontab -l 2>/dev/null; echo ""; echo "# MemPalace maintenance"; echo "0 3 * * * $REPO/mempalace-cron.sh") | crontab -
@@ -186,7 +186,7 @@ cat ~/.local/share/mempalace-cron.log                   # mempalace maintenance 
 systemctl --user restart openclaw-compose.service
 ```
 
-### Update to latest OpenClaw
+### Update to latest upstream OpenClaw
 
 ```bash
 podman pull ghcr.io/openclaw/openclaw:latest
@@ -244,7 +244,7 @@ Run the wiki bootstrap:
 |------|---------|
 | `Containerfile.jeeves` | Container image — extends official OpenClaw with QMD, MemPalace, dev tools |
 | `openclaw-compose.service` | systemd service — manages both containers via podman-compose |
-| `container-openclaw.service` | Legacy systemd service for OpenClaw only (without Quartz) |
+| `container-openclaw.service` | Legacy systemd service (without Quartz) |
 | `podman-compose.yml` | Compose file — orchestrates openclaw + quartz-wiki containers |
 | `Containerfile.quartz` | Quartz wiki viewer container image |
 | `install.sh` | Automated setup — builds image, installs service, cron, bootstraps wiki |

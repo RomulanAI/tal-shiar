@@ -177,8 +177,8 @@ The `up` field is key — it tells both human and LLM which MOC this page belong
 - `MOCs/*.md` (new)
 - `~/openclaw-workspace/skills/wiki/SKILL.md`
 - `~/openclaw-state/workspace/AGENTS.md` (append)
-- `~/openclaw-container/setup-wiki.sh`
-- `~/openclaw-container/quartz/quartz.config.ts` (ignorePatterns)
+- `~/tal-shiar/setup-wiki.sh`
+- `~/tal-shiar/quartz/quartz.config.ts` (ignorePatterns)
 
 ## Verification
 1. Quartz renders cleanly at `:9090` with MOCs navigable
