@@ -23,8 +23,11 @@ PALACE_PATH="${MEMPALACE_PALACE_PATH:-/home/node/.openclaw/mempalace/palace}"
 # If the file already exists, preserve its permissions. Users may have added other
 # MCP servers with secrets/tokens embedded in args/env.
 FILE_EXISTED=false
+OLD_MODE=""
 if [ -f "$MCPORTER_FILE" ]; then
   FILE_EXISTED=true
+  # GNU coreutils stat. If this fails (non-GNU), we simply won't restore mode.
+  OLD_MODE="$(stat -c '%a' "$MCPORTER_FILE" 2>/dev/null || true)"
 fi
 
 if ! command -v python3 >/dev/null 2>&1; then
@@ -89,18 +92,25 @@ if [ $status -ne 0 ]; then
     cp "$MCPORTER_FILE" "${MCPORTER_FILE}.bak.${BACKUP_SUFFIX}" || true
     echo "WARNING: backed up invalid JSON to ${MCPORTER_FILE}.bak.${BACKUP_SUFFIX}" >&2
 
-    # Create a minimal valid file.
-    cat >"$TMP_FILE" <<EOF
-{
+    # Create a minimal valid file. (Use Python to avoid JSON escaping issues.)
+    python3 - "$PALACE_PATH" >"$TMP_FILE" <<'PY'
+import json
+import sys
+
+palace = sys.argv[1]
+
+data = {
   "mcpServers": {
     "mempalace": {
       "description": "MemPalace — structured memory (MCP)",
       "command": "python3",
-      "args": ["-m", "mempalace.mcp_server", "--palace", "${PALACE_PATH}"]
+      "args": ["-m", "mempalace.mcp_server", "--palace", palace],
     }
   }
 }
-EOF
+
+print(json.dumps(data, indent=2, sort_keys=True))
+PY
   else
     rm -f "$TMP_FILE" || true
     exit $status
@@ -109,9 +119,16 @@ fi
 
 mv "$TMP_FILE" "$MCPORTER_FILE"
 
-# If we created a brand new file, default to a readable config so the 'node' user in the
-# container can read it under rootless Podman UID mappings. If the file already existed,
-# preserve permissions to avoid accidentally widening access to other MCP server secrets.
-if [ "$FILE_EXISTED" = false ]; then
-  chmod 0644 "$MCPORTER_FILE" || true
+# Restore permissions.
+# - If the file existed, keep its previous mode to avoid accidentally widening access.
+# - If it's new, default to a readable config so the 'node' user in the container can read it
+#   under rootless Podman UID mappings.
+if [ "$FILE_EXISTED" = true ]; then
+  if [ -n "$OLD_MODE" ]; then
+    chmod "$OLD_MODE" "$MCPORTER_FILE" || true
+  fi
+else
+  # New file: default to owner-readable only. mcporter.json may contain secrets for
+  # other MCP servers.
+  chmod 0600 "$MCPORTER_FILE" || true
 fi
