@@ -413,10 +413,10 @@ MCPORTER_HOST="$HOST_CONFIG_DIR/mcporter.json"
 log "Verifying MCP tooling from inside the container..."
 MCPORTER_IN_CONTAINER="/config/mcporter.json"
 if exec_ bash -lc "command -v mcporter >/dev/null 2>&1"; then
-    exec_ mcporter list --config "$MCPORTER_IN_CONTAINER" 2>&1 | grep -E '(mempalace|healthy)' | head -4
-    exec_ mcporter call --config "$MCPORTER_IN_CONTAINER" mempalace.mempalace_status --output json | head -20
+    exec_ mcporter list --config "$MCPORTER_IN_CONTAINER" 2>&1 | grep -E '(mempalace|healthy)' | sed -n '1,4p'
+    exec_ mcporter call --config "$MCPORTER_IN_CONTAINER" mempalace.mempalace_status --output json | sed -n '1,20p'
 else
-    exec_ npx --yes mcporter list --config "$MCPORTER_IN_CONTAINER" 2>&1 | grep -E '(mempalace|healthy)' | head -4
+    exec_ npx --yes mcporter list --config "$MCPORTER_IN_CONTAINER" 2>&1 | grep -E '(mempalace|healthy)' | sed -n '1,4p'
 fi
 
 # ──────────────────────────────────────────────────────
@@ -428,7 +428,7 @@ log "=== Verification ==="
 log "QMD:       $(exec_ qmd --version 2>&1)"
 log "MemPalace: $(exec_ mempalace status 2>&1 | head -2 | tail -1 | xargs)"
 log "Wiki files: $(exec_ find "$WIKI" -name '*.md' -type f | wc -l) markdown files"
-log "MCP:       $(exec_ bash -lc 'if command -v mcporter >/dev/null 2>&1; then mcporter list --config /config/mcporter.json; else npx --yes mcporter list --config /config/mcporter.json; fi' 2>&1 | grep -o '[0-9]* tools' | head -1) via mempalace"
+log "MCP:       $(exec_ bash -lc 'if command -v mcporter >/dev/null 2>&1; then mcporter list --config /config/mcporter.json; else npx --yes mcporter list --config /config/mcporter.json; fi' 2>&1 | grep -o '[0-9]* tools' | sed -n '1p') via mempalace"
 log ""
 log "Wiki bootstrap complete!"
 log "  - Wiki vault:    ~/openclaw-state/workspace/wiki/"

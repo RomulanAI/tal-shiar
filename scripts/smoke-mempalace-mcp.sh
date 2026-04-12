@@ -31,7 +31,7 @@ fi
 exec_() { podman exec "$CONTAINER" "$@"; }
 
 log "MemPalace CLI status..."
-exec_ mempalace status | head -20
+exec_ mempalace status | sed -n '1,20p'
 
 log "MCPorter config present?"
 exec_ bash -lc "test -f '$MCPORTER_CONFIG_IN_CONTAINER' && echo OK || (echo MISSING; exit 1)"
@@ -45,9 +45,9 @@ fi
 
 log "Calling mempalace_status via MCP (basic tool call)..."
 if exec_ bash -lc "command -v mcporter >/dev/null 2>&1"; then
-  exec_ mcporter call --config "$MCPORTER_CONFIG_IN_CONTAINER" mempalace.mempalace_status --output json | head -40
+  exec_ mcporter call --config "$MCPORTER_CONFIG_IN_CONTAINER" mempalace.mempalace_status --output json | sed -n '1,40p'
 else
-  exec_ npx --yes mcporter call --config "$MCPORTER_CONFIG_IN_CONTAINER" mempalace.mempalace_status --output json | head -40
+  exec_ npx --yes mcporter call --config "$MCPORTER_CONFIG_IN_CONTAINER" mempalace.mempalace_status --output json | sed -n '1,40p'
 fi
 
 log "OK: MemPalace MCP smoke test passed"

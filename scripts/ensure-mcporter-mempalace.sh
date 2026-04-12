@@ -20,6 +20,13 @@ fi
 
 PALACE_PATH="${MEMPALACE_PALACE_PATH:-/home/node/.openclaw/mempalace/palace}"
 
+# If the file already exists, preserve its permissions. Users may have added other
+# MCP servers with secrets/tokens embedded in args/env.
+FILE_EXISTED=false
+if [ -f "$MCPORTER_FILE" ]; then
+  FILE_EXISTED=true
+fi
+
 if ! command -v python3 >/dev/null 2>&1; then
   echo "ERROR: python3 not found; cannot safely merge JSON. Install python3 or create $MCPORTER_FILE manually." >&2
   exit 1
@@ -102,7 +109,9 @@ fi
 
 mv "$TMP_FILE" "$MCPORTER_FILE"
 
-# The config is bind-mounted into the container. If it is too restrictive (e.g. 0600),
-# the 'node' user inside the container may not be able to read it under rootless podman
-# UID mappings. Default to a readable, non-secret config.
-chmod 0644 "$MCPORTER_FILE" || true
+# If we created a brand new file, default to a readable config so the 'node' user in the
+# container can read it under rootless Podman UID mappings. If the file already existed,
+# preserve permissions to avoid accidentally widening access to other MCP server secrets.
+if [ "$FILE_EXISTED" = false ]; then
+  chmod 0644 "$MCPORTER_FILE" || true
+fi
