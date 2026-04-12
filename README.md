@@ -153,14 +153,31 @@ The wiki uses `[[wikilinks]]` and YAML frontmatter, making it an **Obsidian vaul
 | Layer | Tool | What it does |
 |-------|------|-------------|
 | Search | **QMD** | Hybrid BM25+vector indexing, auto-updates every 5 min, powers `memory_search` |
-| Structure | **MemPalace** | Knowledge graph (entities, relationships, temporal facts), 19 MCP tools via mcporter |
+| Structure | **MemPalace** | Knowledge graph (entities, relationships, temporal facts), 19 MCP tools via MCPorter |
 | Navigation | **Obsidian** | Human browsing — graph view, backlinks, `[[wikilinks]]` |
 
 The bot is instructed (via `AGENTS.md`) to create wiki pages when it learns durable knowledge, and to run lint passes periodically.
 
 ### MemPalace MCP tools
 
-Registered via mcporter, available to the bot as first-class tools:
+MemPalace is exposed to OpenClaw via **MCP** using **MCPorter**.
+
+Invariants:
+
+- MCPorter config lives on the host at `~/openclaw-config/mcporter.json` (bind-mounted to `/config/mcporter.json`).
+- MemPalace palace is pinned to the persisted location:
+  - container: `/home/node/.openclaw/mempalace/palace`
+  - host: `~/openclaw-state/mempalace/palace`
+- `install.sh` / `setup-wiki.sh` **merge** the `mempalace` server into any existing `mcporter.json` instead of overwriting it.
+
+Verification (inside container):
+
+```bash
+podman exec openclaw mcporter list --config /config/mcporter.json
+podman exec openclaw mcporter call --config /config/mcporter.json mempalace.mempalace_status --output json
+```
+
+Available to the bot as first-class tools:
 
 | Category | Tools |
 |----------|-------|
@@ -199,8 +216,11 @@ systemctl --user restart openclaw-compose.service
 ```bash
 podman exec openclaw qmd --version                     # QMD installed
 podman exec openclaw mempalace status                   # MemPalace drawers
-podman exec openclaw npx mcporter list                  # MCP servers
+podman exec openclaw mcporter list --config /config/mcporter.json   # MCP servers
 podman exec openclaw find /home/node/.openclaw/workspace/wiki -name '*.md' | wc -l  # wiki pages
+
+# Full MemPalace MCP smoke test
+./scripts/smoke-mempalace-mcp.sh
 ```
 
 ### Access the control UI

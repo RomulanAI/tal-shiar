@@ -22,7 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install Bun to /usr/local (accessible to all users) and QMD search engine
 ENV BUN_INSTALL="/usr/local"
 RUN curl -fsSL https://bun.sh/install | bash \
-    && npm install -g @tobilu/qmd
+    && npm install -g @tobilu/qmd mcporter
 
 # Install MemPalace (structured memory with knowledge graph)
 RUN pip3 install --break-system-packages mempalace
@@ -32,5 +32,8 @@ RUN ln -sf /home/node/.openclaw/mempalace /home/node/.mempalace
 
 # Symlink mcporter config to persisted /config mount so MCP servers survive restarts
 RUN mkdir -p /app/config && ln -sf /config/mcporter.json /app/config/mcporter.json
+
+# Ensure MCPorter always uses the persisted config (avoids cwd-dependent defaults)
+ENV MCPORTER_CONFIG=/app/config/mcporter.json
 
 USER node

@@ -85,22 +85,10 @@ if grep -q "CHANGE_ME" "$CONFIG_DIR/openclaw.json" 2>/dev/null; then
     warn "  Edit: $CONFIG_DIR/openclaw.json"
 fi
 
-# Create mcporter.json (MemPalace MCP server config) before container starts
-# so the Containerfile symlink (/app/config/mcporter.json -> /config/mcporter.json) works on first boot
-if [ ! -f "$CONFIG_DIR/mcporter.json" ]; then
-    cat > "$CONFIG_DIR/mcporter.json" << 'MCPEOF'
-{
-  "mcpServers": {
-    "mempalace": {
-      "command": "python3 -m mempalace.mcp_server"
-    }
-  }
-}
-MCPEOF
-    log "Created mcporter.json (MemPalace MCP server)"
-else
-    log "mcporter.json exists (skipped)"
-fi
+# Ensure mcporter.json (MCPorter config) includes MemPalace MCP server *before* container starts
+# so OpenClaw loads it on first boot.
+log "Ensuring mcporter.json includes MemPalace MCP server..."
+"$REPO_DIR/scripts/ensure-mcporter-mempalace.sh" "$CONFIG_DIR/mcporter.json"
 
 # ──────────────────────────────────────────────────────
 # 2b. Workspace templates & skills
@@ -117,12 +105,15 @@ for f in AGENTS.md SOUL.md USER.md; do
     fi
 done
 
-if [ ! -d "$WORKSPACE_DIR/skills" ] || [ -z "$(ls -A "$WORKSPACE_DIR/skills" 2>/dev/null)" ]; then
-    cp -r "$REPO_DIR/skills" "$WORKSPACE_DIR/skills"
-    log "  Copied baseline skills ($(ls "$REPO_DIR/skills" | wc -l) skills)"
-else
-    log "  Workspace skills/ exists (skipped)"
-fi
+# Merge in baseline skills without clobbering existing workspace customizations.
+mkdir -p "$WORKSPACE_DIR/skills"
+for skill_path in "$REPO_DIR/skills"/*; do
+    skill_name="$(basename "$skill_path")"
+    if [ ! -e "$WORKSPACE_DIR/skills/$skill_name" ]; then
+        cp -r "$skill_path" "$WORKSPACE_DIR/skills/$skill_name"
+        log "  Added skill: $skill_name"
+    fi
+done
 
 # ──────────────────────────────────────────────────────
 # 3. Build the container image

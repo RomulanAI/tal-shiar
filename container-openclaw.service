@@ -32,6 +32,7 @@ ExecStart=/usr/bin/podman run \
 	--name openclaw \
 	--hostname %H \
 	-e OPENCLAW_CONFIG_PATH=/config/openclaw.json \
+	-e MEMPALACE_PALACE_PATH=/home/node/.openclaw/mempalace/palace \
 	-v %h/openclaw-config:/config \
 	-v %h/openclaw-workspace:/home/openclaw/workspace \
 	-v %h/openclaw-state:/home/node/.openclaw \

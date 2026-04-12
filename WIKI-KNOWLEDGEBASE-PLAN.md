@@ -204,22 +204,30 @@ mempalace mine /home/openclaw/workspace/wiki
 
 #### 2.4 Add MemPalace as an MCP server
 
-OpenClaw supports MCP skills. Create a workspace skill that wraps MemPalace's MCP server:
+Tal Shiar exposes MemPalace to OpenClaw via **MCP** using **MCPorter**.
 
-**File**: `~/openclaw-workspace/skills/mempalace/SKILL.md`
+The MCP server registration is stored on the host at:
 
-Or configure it directly in `openclaw.json` if OpenClaw supports MCP server config:
+- `~/openclaw-config/mcporter.json` (bind-mounted to `/config/mcporter.json` in the container)
+
+Tal Shiar pins the palace location so the MCP server is deterministic and always points at the persisted palace:
+
+- container: `/home/node/.openclaw/mempalace/palace`
+
+Minimal config shape:
 
 ```json
-"mcp": {
-  "servers": {
+{
+  "mcpServers": {
     "mempalace": {
       "command": "python3",
-      "args": ["-m", "mempalace.mcp_server"]
+      "args": ["-m", "mempalace.mcp_server", "--palace", "/home/node/.openclaw/mempalace/palace"]
     }
   }
 }
 ```
+
+`install.sh` and `setup-wiki.sh` **merge** this entry into an existing `mcporter.json` (they do not overwrite other servers). The helper used is `scripts/ensure-mcporter-mempalace.sh`.
 
 This gives Psmith 19 additional tools:
 - **Palace read**: `search`, `list_wings`, `list_rooms`, `get_taxonomy`
@@ -299,14 +307,14 @@ All phases have been implemented. For current verification, run:
 ```bash
 podman exec openclaw qmd --version                # QMD search engine
 podman exec openclaw mempalace status              # MemPalace drawers + rooms
-podman exec openclaw npx mcporter list             # MCP server (19 tools)
+podman exec openclaw mcporter list --config /config/mcporter.json   # MCP server (19 tools)
 ```
 
 Components deployed:
 - **QMD** — installed via Containerfile (`npm install -g @tobilu/qmd`), enabled in `openclaw.json`
 - **MemPalace** — installed via Containerfile (`pip install mempalace`), initialized per deployment by `setup-wiki.sh`
 - **Wiki structure** — bootstrapped by `setup-wiki.sh` at `~/openclaw-state/workspace/wiki/`
-- **MCP server** — registered in `~/openclaw-config/mcporter.json`, created by `install.sh`
+- **MCP server** — registered in `~/openclaw-config/mcporter.json`, merged/maintained by `install.sh` + `setup-wiki.sh`
 - **Cron jobs** — watchdog (every 5 min) + mempalace maintenance (daily 3 AM), installed by `install.sh`
 - **Agent instructions** — wiki + mempalace sections appended to `AGENTS.md` in the state workspace
 
