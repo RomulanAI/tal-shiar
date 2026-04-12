@@ -25,7 +25,10 @@ if ! command -v python3 >/dev/null 2>&1; then
   exit 1
 fi
 
-TMP_FILE="$(mktemp "${MCPORTER_FILE}.tmp.XXXXXX")"
+MCPORTER_DIR="$(dirname "$MCPORTER_FILE")"
+mkdir -p "$MCPORTER_DIR"
+
+TMP_FILE="$(mktemp "$MCPORTER_DIR/.mcporter.json.tmp.XXXXXX")"
 BACKUP_SUFFIX="$(date +%Y%m%d%H%M%S)"
 
 merge_with_python() {
@@ -97,5 +100,9 @@ EOF
   fi
 fi
 
-mkdir -p "$(dirname "$MCPORTER_FILE")"
 mv "$TMP_FILE" "$MCPORTER_FILE"
+
+# The config is bind-mounted into the container. If it is too restrictive (e.g. 0600),
+# the 'node' user inside the container may not be able to read it under rootless podman
+# UID mappings. Default to a readable, non-secret config.
+chmod 0644 "$MCPORTER_FILE" || true
