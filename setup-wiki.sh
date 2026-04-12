@@ -15,6 +15,9 @@
 
 set -euo pipefail
 
+REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
+HOST_CONFIG_DIR="$HOME/openclaw-config"
+
 CONTAINER="openclaw"
 WORKSPACE="/home/node/.openclaw/workspace"
 WIKI="$WORKSPACE/wiki"
@@ -402,25 +405,20 @@ exec_ mempalace compress 2>&1 | grep -E '(Total|stored)' || true
 # 5. Register MemPalace MCP server via mcporter
 # ──────────────────────────────────────────────────────
 
-log "Checking MemPalace MCP server registration..."
-MCPORTER_HOST="$HOME/openclaw-config/mcporter.json"
-if [ -f "$MCPORTER_HOST" ]; then
-    log "  mcporter.json exists on host"
-else
-    # Fallback: create it if install.sh wasn't used
-    cat > "$MCPORTER_HOST" << 'MCPEOF'
-{
-  "mcpServers": {
-    "mempalace": {
-      "command": "python3 -m mempalace.mcp_server"
-    }
-  }
-}
-MCPEOF
-    log "  created mcporter.json (MemPalace MCP server)"
-fi
+log "Ensuring MemPalace MCP server registration (host mcporter.json)..."
+MCPORTER_HOST="$HOST_CONFIG_DIR/mcporter.json"
+"$REPO_DIR/scripts/ensure-mcporter-mempalace.sh" "$MCPORTER_HOST"
+
 # Verify MCP server is reachable from inside the container
-exec_ npx --yes mcporter list 2>&1 | grep -E '(mempalace|healthy)' | head -2
+log "Verifying MCP tooling from inside the container..."
+MCPORTER_IN_CONTAINER="/config/mcporter.json"
+if exec_ bash -lc "command -v mcporter >/dev/null 2>&1"; then
+    exec_ mcporter list --config "$MCPORTER_IN_CONTAINER" 2>&1 | sed -n '1,40p'
+    exec_ mcporter call --config "$MCPORTER_IN_CONTAINER" mempalace.mempalace_status --output json | sed -n '1,40p'
+else
+    exec_ npx --yes mcporter list --config "$MCPORTER_IN_CONTAINER" 2>&1 | sed -n '1,40p'
+    exec_ npx --yes mcporter call --config "$MCPORTER_IN_CONTAINER" mempalace.mempalace_status --output json | sed -n '1,40p'
+fi
 
 # ──────────────────────────────────────────────────────
 # 6. Verify
@@ -431,7 +429,12 @@ log "=== Verification ==="
 log "QMD:       $(exec_ qmd --version 2>&1)"
 log "MemPalace: $(exec_ mempalace status 2>&1 | head -2 | tail -1 | xargs)"
 log "Wiki files: $(exec_ find "$WIKI" -name '*.md' -type f | wc -l) markdown files"
-log "MCP:       $(exec_ npx --yes mcporter list 2>&1 | grep -o '[0-9]* tools' | head -1) via mempalace"
+MCP_TOOLS_COUNT="$(exec_ bash -lc 'if command -v mcporter >/dev/null 2>&1; then mcporter list --config /config/mcporter.json; else npx --yes mcporter list --config /config/mcporter.json; fi' 2>&1 | grep -o '[0-9]* tools' | head -1 || true)"
+if [ -n "$MCP_TOOLS_COUNT" ]; then
+    log "MCP:       ${MCP_TOOLS_COUNT} via mempalace"
+else
+    log "MCP:       (run 'mcporter list --config /config/mcporter.json' for details)"
+fi
 log ""
 log "Wiki bootstrap complete!"
 log "  - Wiki vault:    ~/openclaw-state/workspace/wiki/"
